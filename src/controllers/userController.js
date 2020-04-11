@@ -6,6 +6,7 @@ var jwt = require('../services/jwt');
 var mongoosePaginate = require('mongoose-pagination');
 var fs = require('fs');
 var path = require('path');
+var Follow = require('../models/follow');
 
 function saveUser(req, res) {
     var params = req.body;
@@ -91,9 +92,32 @@ function getUser(req, res) {
 
         if (!user) return res.status(404).send({ message: 'El usuario no existe' });
         user.password = undefined;
-        return res.status(200).send({ user });
+
+        followThisUser(req.user.sub, userId).then((value) => {
+            return res.status(200).send({
+                user: user,
+                following: value.following,
+                followed: value.followed
+            });
+        });
     });
 
+}
+
+async function followThisUser(identity_user_id, user_id) {
+    var following = await Follow.findOne( {"user":identity_user_id, "followed":user_id},(err, follow)  => {
+        if (err) return handleError(err);
+        return follow;
+    });
+
+    let followed = await Follow.findOne({ "user":user_id, "followed":identity_user_id },(err, follow) => {
+        if (err) return handleError(err);
+        return follow;
+    });
+    return {
+        following: following,
+        followed: followed
+    }
 }
 
 function getUsers(req, res) {
@@ -164,10 +188,10 @@ function upImage(req, res) {
                 if (!userUpdated) return res.status(404).send({ message: 'No se ha actualizado el usuario' });
                 return res.status(200).send({ user: userUpdated });
             });
-        }else{
+        } else {
             removeFilesOfUploads(res, file_path, 'Extension no valida');
         };
-    }else{
+    } else {
         return res.status(200).send({ message: 'No se han enviado archivos' });
     };
 };
@@ -175,19 +199,19 @@ function upImage(req, res) {
 //subir archivos de imagen de user
 function getImagenFile(req, res) {
     var image_file = req.params.imageFile;
-    var path_file = './uploads/users/'+image_file;
-    
-    fs.exists(path_file, (exists) =>{
+    var path_file = './uploads/users/' + image_file;
+
+    fs.exists(path_file, (exists) => {
         if (exists) {
             res.sendFile(path.resolve(path_file));
-        }else{
-             res.status(200).send({message: 'No existe imagen'});
+        } else {
+            res.status(200).send({ message: 'No existe imagen' });
         };
     });
 };
 
 
- 
+
 function removeFilesOfUploads(res, file_path, message) {
     fs.unlink(file_path, (err) => {
         return res.status(200).send({ message: message })
