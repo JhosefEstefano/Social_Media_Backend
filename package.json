@@ -17,7 +17,7 @@
     "fs": "0.0.1-security",
     "jwt-simple": "^0.5.6",
     "moment": "^2.24.0",
-    "mongoose": "^5.9.6",
+    "mongoose": "^5.13.15",
     "mongoose-pagination": "^1.0.0"
   },
   "devDependencies": {
